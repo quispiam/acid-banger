@@ -249,3 +249,61 @@ h2 {
 /*        font-size: 1.2em;*/
 /*    }*/
 /*}*/
+
+/* BPM Clock Controls */
+.clock-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.clock-bpm-dial {
+    display: flex;
+    align-items: center;
+}
+
+.bpm-randomize-button {
+    height: 40px !important;
+    width: 28px !important;
+    font-size: 18px !important;
+    padding: 0 !important;
+    align-self: center;
+}
+
+.bpm-range {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    justify-content: center;
+}
+
+.bpm-range-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+.bpm-range-label {
+    font-size: 9px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.bpm-range-input {
+    width: 52px;
+    text-align: center;
+    font-size: 11px;
+    padding: 2px 2px;
+    -moz-appearance: textfield;
+}
+
+.bpm-range-input::-webkit-inner-spin-button,
+.bpm-range-input::-webkit-outer-spin-button {
+    opacity: 1;
+}

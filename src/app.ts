@@ -569,8 +569,11 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
 }
 
 function ClockUnit(): ClockUnit {
-    const bpm = parameter("BPM", [70,200],90);
+    const bpmMin = parameter("BPM Min", [40, 300], 70);
+    const bpmMax = parameter("BPM Max", [40, 300], 200);
+    const bpm = parameter("BPM", [40,300],90);
     const currentStep = parameter("Current Step", [0,15],0);
+    const randomizeBpm = trigger("Randomize BPM", false);
     const clockImpl = Clock(bpm.value, 4, 0.0);
 
     bpm.subscribe(clockImpl.setBpm);
@@ -578,8 +581,20 @@ function ClockUnit(): ClockUnit {
         currentStep.value = step % 16;
     })
 
+    randomizeBpm.subscribe(v => {
+        if (v) {
+            const min = Math.min(bpmMin.value, bpmMax.value);
+            const max = Math.max(bpmMin.value, bpmMax.value);
+            bpm.value = Math.round(min + Math.random() * (max - min));
+            randomizeBpm.value = false;
+        }
+    });
+
     return {
         bpm,
+        bpmMin,
+        bpmMax,
+        randomizeBpm,
         currentStep
     }
 }

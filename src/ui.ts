@@ -12,6 +12,7 @@ import {
     PatternParameter, ProgramState,
     ThreeOhMachine, Trigger, AutoPilotUnit
 } from "./interface.js";
+// ClockUnit is used by ClockControls
 import {textNoteToNumber} from "./audio.js";
 import {MidiT} from "./midi.js";
 import {Dial, RangeSelect} from "./dial.js";
@@ -399,6 +400,69 @@ function Mutes(params: GeneralisedParameter<boolean>[]) {
     return container;
 }
 
+function ClockControls(clock: ClockUnit) {
+    const container = document.createElement("div");
+    container.classList.add("clock-controls");
+
+    // BPM dial
+    const dialContainer = document.createElement("div");
+    dialContainer.classList.add("clock-bpm-dial");
+    const dial = Dial(clock.bpm.value, clock.bpm.bounds, clock.bpm.name, defaultColors.dial, defaultColors.text);
+    dial.bind(v => { clock.bpm.value = v; });
+    clock.bpm.subscribe(v => dial.value = v);
+    dialContainer.append(dial.element);
+    container.append(dialContainer);
+
+    // Randomize button
+    const rndBtn = document.createElement("button");
+    rndBtn.classList.add("trigger-button", "bpm-randomize-button");
+    rndBtn.title = "Randomize BPM";
+    rndBtn.innerText = "⟳";
+    clock.randomizeBpm.subscribe(v => {
+        if (v) rndBtn.classList.add("waiting"); else rndBtn.classList.remove("waiting");
+    });
+    rndBtn.addEventListener("click", () => { clock.randomizeBpm.value = true; });
+    container.append(rndBtn);
+
+    // Min / Max fields
+    const rangeContainer = document.createElement("div");
+    rangeContainer.classList.add("bpm-range");
+
+    function bpmRangeField(param: NumericParameter, labelText: string) {
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("bpm-range-field");
+
+        const lbl = document.createElement("span");
+        lbl.classList.add("bpm-range-label");
+        lbl.innerText = labelText;
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = String(param.bounds[0]);
+        input.max = String(param.bounds[1]);
+        input.value = String(param.value);
+        input.classList.add("bpm-range-input");
+
+        input.addEventListener("change", () => {
+            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], parseInt(input.value) || param.value));
+            param.value = v;
+            input.value = String(v);
+        });
+        param.subscribe(v => { input.value = String(v); });
+
+        wrapper.append(lbl, input);
+        return wrapper;
+    }
+
+    rangeContainer.append(
+        bpmRangeField(clock.bpmMin, "Min"),
+        bpmRangeField(clock.bpmMax, "Max"),
+    );
+    container.append(rangeContainer);
+
+    return controlGroup(label("Clock"), container);
+}
+
 function DelayControls(delayUnit: DelayUnit) {
     const controls = DialSet([delayUnit.dryWet, delayUnit.feedback]);
     controls.classList.add("horizontal");
@@ -467,7 +531,7 @@ export function UI(state: ProgramState, autoPilot: AutoPilotUnit, analyser: Anal
         AutopilotControls(autoPilot),
         NoteGen(state.gen),
         DelayControls(state.delay),
-        controlGroup(label("Clock"), DialSet([state.clock.bpm], "horizontal")),
+        ClockControls(state.clock),
         controlGroup(label("Volume"), DialSet([state.masterVolume], "horizontal")),
         controlGroup(label("Meter"), group(AudioMeter(analyser)), "meter")
     )

@@ -98,7 +98,10 @@ export type DelayUnit = {
 
 export type ClockUnit = {
     currentStep: NumericParameter,
-    bpm: NumericParameter
+    bpm: NumericParameter,
+    bpmMin: NumericParameter,
+    bpmMax: NumericParameter,
+    randomizeBpm: Trigger
 }
 
 export type MidiUnit = {
