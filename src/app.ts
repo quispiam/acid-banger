@@ -534,11 +534,14 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
         const max = Math.max(state.clock.bpmMin.value, state.clock.bpmMax.value);
         bpmJumpStartTime = Date.now();
         bpmJumpStartValue = state.clock.bpm.value;
-        bpmJumpTargetValue = Math.round(min + Math.random() * (max - min));
-        // Rate-limit to 4 BPM per bar: duration = max(1, |delta|/4) bars.
+        // Cap the jump to ±8 BPM from the current value, then clamp to [min, max].
+        const rawTarget = Math.round(min + Math.random() * (max - min));
+        const clampedDelta = Math.max(-8, Math.min(8, rawTarget - bpmJumpStartValue));
+        bpmJumpTargetValue = Math.max(min, Math.min(max, bpmJumpStartValue + clampedDelta));
+        // Rate-limit to 2 BPM per bar: duration = max(1, |delta|/2) bars.
         // One bar = 240000/bpm ms (4 beats × 60000/bpm ms each).
         const barMs = 240000 / state.clock.bpm.value;
-        bpmJumpDuration = Math.max(1, Math.abs(bpmJumpTargetValue - bpmJumpStartValue) / 4) * barMs;
+        bpmJumpDuration = Math.max(1, Math.abs(bpmJumpTargetValue - bpmJumpStartValue) / 2) * barMs;
         bpmJumping = true;
         console.log("BPM jump %d -> %d over %dms", bpmJumpStartValue, bpmJumpTargetValue, Math.round(bpmJumpDuration));
     }
@@ -552,8 +555,8 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     });
 
     nextMeasure.subscribe(measure => {
-        // Mode 1: trigger smooth BPM jump at similar rate to pattern changes
-        if (state.clock.bpmTwiddleMode.value === 1 && measure % 16 === 0 && Math.random() < 0.5) {
+        // Mode 1: trigger smooth BPM jump — every 32 measures with 50% chance
+        if (state.clock.bpmTwiddleMode.value === 1 && measure % 32 === 0 && Math.random() < 0.5) {
             triggerBpmJump();
             console.log("measure #%d: auto BPM jump triggered", measure);
         }
