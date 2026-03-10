@@ -273,7 +273,10 @@ function PatternDisplay(patternParam: PatternParameter, stepParam: NumericParame
         const pattern = patternParam.value;
         const w = canvas.width = canvas.clientWidth;
         const h = canvas.height = 200;
-        const vScale = h / 50;
+        // Show from C0 (midi 12) to C7 (midi 96) — 84 semitones
+        const noteMin = 12;  // C0
+        const noteRange = 84;
+        const vScale = h / noteRange;
         const g = canvas.getContext("2d") as CanvasRenderingContext2D;
 
         g.font = "10px Orbitron";
@@ -290,7 +293,7 @@ function PatternDisplay(patternParam: PatternParameter, stepParam: NumericParame
             g.stroke();
         }
 
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < noteRange; i++) {
             g.strokeStyle = i % 12 == 0 ? colors.grid2 : colors.grid1;
             const y = h - (i * vScale);
             g.beginPath();
@@ -303,7 +306,7 @@ function PatternDisplay(patternParam: PatternParameter, stepParam: NumericParame
             const s = pattern[i];
             if (s.note === "-") {
             } else {
-                const n = textNoteToNumber(s.note) - 24;
+                const n = textNoteToNumber(s.note) - noteMin;
                 const x = w * i / pattern.length;
                 const y = h - (n * vScale);
                 const bw = w / pattern.length;

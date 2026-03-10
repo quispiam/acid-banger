@@ -124,9 +124,18 @@ button:hover, select:hover, input:hover {
     display: block;
 }
 
+.mutes {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .mutes button {
-    height: 20%;  // 5 buttons
+    flex: 1;
     display: block;
+    white-space: nowrap;
+    font-size: 10px;
+    padding: 0 4px;
 }
 
 .mutes .on {
@@ -332,13 +341,22 @@ h2 {
 
 .octave-controls {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 4px 8px;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 0;
     border-top: 1px solid var(--accent);
+    width: 100%;
+}
+
+.octave-controls .bpm-range-field {
+    width: 100%;
+    align-items: center;
+}
+
+.octave-controls .bpm-range-input {
+    width: 60px;
 }
 
 .octave-label {
