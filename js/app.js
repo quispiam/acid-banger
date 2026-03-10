@@ -474,8 +474,10 @@ function AutoPilot(state) {
         bpmJumpStartTime = Date.now();
         bpmJumpStartValue = state.clock.bpm.value;
         bpmJumpTargetValue = Math.round(min + Math.random() * (max - min));
-        // 2 bars = 32 steps; step duration = 60000 / (bpm * 4) ms
-        bpmJumpDuration = 32 * (60000 / (state.clock.bpm.value * 4));
+        // Rate-limit to 4 BPM per bar: duration = max(1, |delta|/4) bars.
+        // One bar = 240000/bpm ms (4 beats × 60000/bpm ms each).
+        const barMs = 240000 / state.clock.bpm.value;
+        bpmJumpDuration = Math.max(1, Math.abs(bpmJumpTargetValue - bpmJumpStartValue) / 4) * barMs;
         bpmJumping = true;
         console.log("BPM jump %d -> %d over %dms", bpmJumpStartValue, bpmJumpTargetValue, Math.round(bpmJumpDuration));
     }
@@ -487,8 +489,8 @@ function AutoPilot(state) {
         }
     });
     nextMeasure.subscribe(measure => {
-        // Mode 2: trigger smooth BPM jump at similar rate to pattern changes
-        if (state.clock.bpmTwiddleMode.value === 2 && measure % 16 === 0 && Math.random() < 0.5) {
+        // Mode 1: trigger smooth BPM jump at similar rate to pattern changes
+        if (state.clock.bpmTwiddleMode.value === 1 && measure % 16 === 0 && Math.random() < 0.5) {
             triggerBpmJump();
             console.log("measure #%d: auto BPM jump triggered", measure);
         }
@@ -600,9 +602,7 @@ function AutoPilot(state) {
             }
         };
     });
-    // BPM mode 1: continuous wandering (respects bpmMin/bpmMax)
-    const bpmWanderer = WanderingParameter(state.clock.bpm);
-    // BPM mode 2: smooth jump state
+    // BPM jump state
     let bpmJumping = false;
     let bpmJumpStartTime = 0;
     let bpmJumpStartValue = 0;
@@ -612,19 +612,9 @@ function AutoPilot(state) {
         if (dialsEnabled.value) {
             wanderers.forEach(w => w.step());
             distortionWanderers.forEach(w => w.step());
-            // Mode 1: wander BPM continuously
-            if (state.clock.bpmTwiddleMode.value === 1) {
-                bpmWanderer.step();
-                const min = Math.min(state.clock.bpmMin.value, state.clock.bpmMax.value);
-                const max = Math.max(state.clock.bpmMin.value, state.clock.bpmMax.value);
-                if (state.clock.bpm.value < min)
-                    state.clock.bpm.value = min;
-                if (state.clock.bpm.value > max)
-                    state.clock.bpm.value = max;
-            }
         }
-        // Mode 2: advance smooth BPM transition
-        if (bpmJumping && state.clock.bpmTwiddleMode.value === 2) {
+        // Mode 1: advance smooth BPM transition
+        if (bpmJumping && state.clock.bpmTwiddleMode.value === 1) {
             const elapsed = Date.now() - bpmJumpStartTime;
             const t = Math.min(1, elapsed / bpmJumpDuration);
             const newBpm = bpmJumpStartValue + (bpmJumpTargetValue - bpmJumpStartValue) * t;
@@ -643,9 +633,9 @@ function AutoPilot(state) {
 }
 function ClockUnit() {
     const bpmMin = parameter("BPM Min", [40, 300], 80);
-    const bpmMax = parameter("BPM Max", [40, 300], 130);
+    const bpmMax = parameter("BPM Max", [40, 300], 120);
     const bpm = parameter("BPM", [40, 300], 90);
-    const bpmTwiddleMode = parameter("BPM Auto", [0, 2], 2); // 0=Off, 1=Wander, 2=Jump
+    const bpmTwiddleMode = parameter("BPM Auto", [0, 1], 1); // 0=Off, 1=Jump
     const randomizeBpm = trigger("Randomize BPM", false);
     const currentStep = parameter("Current Step", [0, 15], 0);
     const clockImpl = Clock(bpm.value, 4, 0.0);
@@ -687,8 +677,8 @@ function start() {
         });
         const programState = {
             notes: [
-                ThreeOhUnit(audio, midi, "triangle", delay.inputNode, clock.bpm, gen, 16, 2, 4), // lead: octaves 2-4
-                ThreeOhUnit(audio, midi, "sawtooth", delay.inputNode, clock.bpm, gen, 16, 1, 2), // bass: octaves 1-2
+                ThreeOhUnit(audio, midi, "triangle", delay.inputNode, clock.bpm, gen, 16, 0, 4), // lead: octaves 0-4
+                ThreeOhUnit(audio, midi, "sawtooth", delay.inputNode, clock.bpm, gen, 16, 0, 4), // bass: octaves 0-4
             ],
             drums: yield NineOhUnit(audio, midi, clock.bpm),
             gen,

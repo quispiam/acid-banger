@@ -410,7 +410,7 @@ function ClockControls(clock) {
     modeLbl.innerText = "Auto";
     const modeSelect = document.createElement("select");
     modeSelect.classList.add("bpm-mode-select");
-    ["Off", "Wander", "Jump"].forEach((name, i) => {
+    ["Off", "Jump"].forEach((name, i) => {
         const opt = document.createElement("option");
         opt.text = name;
         opt.value = String(i);
