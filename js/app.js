@@ -493,7 +493,7 @@ function AutoPilot(state) {
     });
     nextMeasure.subscribe(measure => {
         // Mode 1: trigger smooth BPM jump — every 32 measures with 50% chance
-        if (state.clock.bpmTwiddleMode.value === 1 && measure % 32 === 0 && Math.random() < 0.5) {
+        if (state.clock.bpmTwiddleMode.value === 1 && measure % 32 === 0 && Math.random() < 0.2) {
             triggerBpmJump();
             console.log("measure #%d: auto BPM jump triggered", measure);
         }
