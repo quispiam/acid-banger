@@ -13,7 +13,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Clock, pressToStart } from "./boilerplate.js";
-import { Audio, textNoteToNumber, midiNoteToText } from './audio.js';
+import { Audio } from './audio.js';
 import { Midi } from './midi.js';
 import { NineOhGen, SynthwaveGen } from "./pattern.js";
 import { UI } from "./ui.js";
@@ -132,18 +132,6 @@ function WanderingParameter(param, scaleFactor = 1 / 400) {
         step
     };
 }
-/** Transpose a note into the allowed octave range by shifting by whole octaves. */
-function clampNoteToOctaves(note, minOctave, maxOctave) {
-    // textNoteToNumber() returns standard MIDI numbers (C0=12, C1=24, C2=36, C4=60 …)
-    let midiNum = textNoteToNumber(note);
-    const minMidi = minOctave * 12 + 12;
-    const maxMidi = maxOctave * 12 + 12 + 11;
-    while (midiNum < minMidi)
-        midiNum += 12;
-    while (midiNum > maxMidi)
-        midiNum -= 12;
-    return midiNoteToText(midiNum);
-}
 function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16, defaultOctaveMin = 2, defaultOctaveMax = 4) {
     const synth = audio.ThreeOh(waveform, output);
     const midiDevice = parameter("Device", [0, Infinity], 0);
@@ -155,6 +143,8 @@ function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16
     const octaveMax = parameter("Oct Max", [0, 7], defaultOctaveMax);
     const newPattern = trigger("New Pattern Trigger", true);
     const restorePattern = trigger("Restore Pattern Trigger", false);
+    // Each ThreeOhUnit gets its own generator that reads the octave range at generation time
+    const localGen = SynthwaveGen(() => [octaveMin.value, octaveMax.value]);
     const parameters = {
         cutoff: parameter("Cutoff", [30, 700], 400),
         resonance: parameter("Resonance", [1, 30], 15),
@@ -177,10 +167,13 @@ function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16
         if (newNotes == true)
             newPattern.value = true;
     });
+    // Changing the octave range immediately triggers a fresh pattern
+    octaveMin.subscribe(() => { newPattern.value = true; });
+    octaveMax.subscribe(() => { newPattern.value = true; });
     function step(index) {
         if ((index === 0 && newPattern.value == true) || pattern.value.length == 0) {
             savedPattern.value = pattern.value;
-            pattern.value = gen.createPattern();
+            pattern.value = localGen.createPattern();
             newPattern.value = false;
         }
         if (index === 0 && restorePattern.value == true && savedPattern.value.length > 0) {
@@ -199,10 +192,7 @@ function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16
         //     for (let i = 0; i < 6; i++)
         //         window.setTimeout(() => { device.clockPulse(); }, (60000/bpm.value)*(i/24));
         // }
-        const rawSlot = pattern.value[index % patternLength];
-        // Transpose the note into the per-track octave range
-        const slot = rawSlot.note !== "-"
-            ? Object.assign(Object.assign({}, rawSlot), { note: clampNoteToOctaves(rawSlot.note, octaveMin.value, octaveMax.value) }) : rawSlot;
+        const slot = pattern.value[index % patternLength];
         if (slot.note != "-") {
             synth.noteOn(slot.note, slot.accent, slot.glide);
             if (midi) {

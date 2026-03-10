@@ -74,7 +74,7 @@ export function ThreeOhGen(): NoteGenerator {
     }
 }
 
-export function SynthwaveGen(): NoteGenerator {
+export function SynthwaveGen(getOctaveRange: () => [number, number] = () => [2, 4]): NoteGenerator {
     let noteSet: GeneralisedParameter<FullNote[]> = genericParameter("note set", ['C3']);
     let newNotes: Trigger = trigger("new note set", true);
     const density = 0.8;
@@ -88,7 +88,12 @@ export function SynthwaveGen(): NoteGenerator {
     ];
 
     function changeNotes() {
-        const root = rndInt(12) + 36;
+        const [minOct, maxOct] = getOctaveRange();
+        // MIDI note: C0=12, C1=24, C2=36, C3=48, C4=60
+        const minMidi = minOct * 12 + 12;
+        const maxMidi = maxOct * 12 + 12;  // bottom of max octave
+        // pick a root anywhere from minMidi up to maxMidi so the root itself lands in range
+        const root = minMidi + rndInt(Math.max(1, maxMidi - minMidi + 1));
         const offsets: number[] = choose(offsetChoices);
         noteSet.value = offsets.map(o => midiNoteToText(o + root));
     }
