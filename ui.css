@@ -47,7 +47,7 @@ a {
 .machine {
     background-color: var(--panel);
     display: grid;
-    grid-template-columns: 20px 1fr auto;
+    grid-template-columns: 20px 1fr;
     border: 1px solid var(--accent);
     margin: 5px;
 }
@@ -70,7 +70,7 @@ a {
 
 .machine .group {
     display: grid;
-    grid-template-columns: 25px auto 70px;
+    grid-template-columns: 25px auto;
     grid-column: 2;
 }
 
@@ -324,16 +324,21 @@ h2 {
     min-width: unset;
 }
 
-/* Octave min/max controls — 3rd column of machine grid */
-.octave-controls {
-    grid-column: 3;
+/* Octave min/max controls — below synth dials */
+.dial-octave-stack {
     display: flex;
     flex-direction: column;
+}
+
+.octave-controls {
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 4px 6px;
-    border-left: 1px solid var(--accent);
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 8px;
+    border-top: 1px solid var(--accent);
 }
 
 .octave-label {
@@ -351,4 +356,20 @@ h2 {
 
 .clock-controls {
     overflow: visible;
+}
+
+/* BPM numeric readout below the dial */
+.clock-bpm-dial {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.bpm-readout {
+    font-size: 10px;
+    color: var(--accent);
+    text-align: center;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+    white-space: nowrap;
 }

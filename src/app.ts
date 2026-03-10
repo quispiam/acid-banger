@@ -151,8 +151,8 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
     const midiPreset = parameter("Preset", [0, Infinity], 0);
     const pattern = genericParameter<Pattern>("Pattern", []);
     const savedPattern = genericParameter<Pattern>("Pattern", []);
-    const octaveMin = parameter("Oct Min", [0, 7], defaultOctaveMin);
-    const octaveMax = parameter("Oct Max", [0, 7], defaultOctaveMax);
+    const octaveMin = parameter("Oct Min", [-1, 7], defaultOctaveMin);
+    const octaveMax = parameter("Oct Max", [-1, 7], defaultOctaveMax);
     const newPattern = trigger("New Pattern Trigger", true);
     const restorePattern = trigger("Restore Pattern Trigger", false);
 

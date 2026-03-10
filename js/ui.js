@@ -325,7 +325,8 @@ function OctaveControls(n) {
         input.value = String(param.value);
         input.classList.add("bpm-range-input");
         input.addEventListener("change", () => {
-            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], parseInt(input.value) || param.value));
+            const parsed = parseInt(input.value);
+            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], isNaN(parsed) ? param.value : parsed));
             param.value = v;
             input.value = String(v);
         });
@@ -339,16 +340,25 @@ function OctaveControls(n) {
     wrapper.append(lbl, octaveField(n.octaveMin, "Min"), octaveField(n.octaveMax, "Max"));
     return wrapper;
 }
+function DialSetWithOctaves(n) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("dial-octave-stack");
+    wrapper.append(DialSet(n.parameters), OctaveControls(n));
+    return wrapper;
+}
 function ClockControls(clock) {
     const container = document.createElement("div");
     container.classList.add("clock-controls");
-    // BPM dial
+    // BPM dial + numeric readout
     const dialContainer = document.createElement("div");
     dialContainer.classList.add("clock-bpm-dial");
     const dial = Dial(clock.bpm.value, clock.bpm.bounds, clock.bpm.name, defaultColors.dial, defaultColors.text);
     dial.bind(v => { clock.bpm.value = v; });
     clock.bpm.subscribe(v => dial.value = v);
-    dialContainer.append(dial.element);
+    const bpmReadout = document.createElement("div");
+    bpmReadout.classList.add("bpm-readout");
+    clock.bpm.subscribe(v => { bpmReadout.innerText = Math.round(v) + " BPM"; });
+    dialContainer.append(dial.element, bpmReadout);
     container.append(dialContainer);
     // Randomize button (triggers a 2-bar smooth jump)
     const rndBtn = document.createElement("button");
@@ -379,7 +389,8 @@ function ClockControls(clock) {
         input.value = String(param.value);
         input.classList.add("bpm-range-input");
         input.addEventListener("change", () => {
-            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], parseInt(input.value) || param.value));
+            const parsed = parseInt(input.value);
+            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], isNaN(parsed) ? param.value : parsed));
             param.value = v;
             input.value = String(v);
         });
@@ -464,7 +475,7 @@ export function UI(state, autoPilot, analyser, midi) {
     const deviceNames = midi ? midi.getOutputNames() : [];
     const notePresetNames = [...midiControlPresets.keys()];
     const drumPresetNames = [...midiDrumPresets.keys()];
-    const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern)), PatternDisplay(n.pattern, state.clock.currentStep), DialSet(n.parameters), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement), OctaveControls(n)));
+    const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern)), PatternDisplay(n.pattern, state.clock.currentStep), DialSetWithOctaves(n), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement)));
     const drumMachine = machine(label("909-XX"), group(buttonGroup(triggerButton(state.drums.newPattern), restoreButton(state.drums.restorePattern)), DrumDisplay(state.drums.pattern, state.drums.mutes, state.clock.currentStep), Mutes(state.drums.mutes), midi ? MidiControls(state.drums.midiDevice, deviceNames, state.drums.midiChannel, state.drums.midiPreset, drumPresetNames, state.drums.midiControls, "horizontal") : emptyElement));
     machineContainer.append(...noteMachines, drumMachine);
     ui.append(machineContainer, otherControls);

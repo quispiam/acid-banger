@@ -139,8 +139,8 @@ function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16
     const midiPreset = parameter("Preset", [0, Infinity], 0);
     const pattern = genericParameter("Pattern", []);
     const savedPattern = genericParameter("Pattern", []);
-    const octaveMin = parameter("Oct Min", [0, 7], defaultOctaveMin);
-    const octaveMax = parameter("Oct Max", [0, 7], defaultOctaveMax);
+    const octaveMin = parameter("Oct Min", [-1, 7], defaultOctaveMin);
+    const octaveMax = parameter("Oct Max", [-1, 7], defaultOctaveMax);
     const newPattern = trigger("New Pattern Trigger", true);
     const restorePattern = trigger("Restore Pattern Trigger", false);
     // Each ThreeOhUnit gets its own generator that reads the octave range at generation time
