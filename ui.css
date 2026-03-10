@@ -314,3 +314,22 @@ h2 {
     text-align: center;
     min-width: unset;
 }
+
+/* Octave min/max controls inside 303 machine button group */
+.octave-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+}
+
+.octave-label {
+    font-size: 9px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin-right: 2px;
+}

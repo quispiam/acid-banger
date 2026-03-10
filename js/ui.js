@@ -309,6 +309,36 @@ function Mutes(params) {
     container.append(...params.map(p => toggleButton(p)));
     return container;
 }
+function OctaveControls(n) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("octave-controls");
+    function octaveField(param, labelText) {
+        const field = document.createElement("div");
+        field.classList.add("bpm-range-field");
+        const lbl = document.createElement("span");
+        lbl.classList.add("bpm-range-label");
+        lbl.innerText = labelText;
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = String(param.bounds[0]);
+        input.max = String(param.bounds[1]);
+        input.value = String(param.value);
+        input.classList.add("bpm-range-input");
+        input.addEventListener("change", () => {
+            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], parseInt(input.value) || param.value));
+            param.value = v;
+            input.value = String(v);
+        });
+        param.subscribe(v => { input.value = String(v); });
+        field.append(lbl, input);
+        return field;
+    }
+    const lbl = document.createElement("span");
+    lbl.classList.add("octave-label");
+    lbl.innerText = "Oct";
+    wrapper.append(lbl, octaveField(n.octaveMin, "Min"), octaveField(n.octaveMax, "Max"));
+    return wrapper;
+}
 function ClockControls(clock) {
     const container = document.createElement("div");
     container.classList.add("clock-controls");
@@ -432,7 +462,7 @@ export function UI(state, autoPilot, analyser, midi) {
     const deviceNames = midi ? midi.getOutputNames() : [];
     const notePresetNames = [...midiControlPresets.keys()];
     const drumPresetNames = [...midiDrumPresets.keys()];
-    const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern)), PatternDisplay(n.pattern, state.clock.currentStep), DialSet(n.parameters), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement)));
+    const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern), OctaveControls(n)), PatternDisplay(n.pattern, state.clock.currentStep), DialSet(n.parameters), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement)));
     const drumMachine = machine(label("909-XX"), group(buttonGroup(triggerButton(state.drums.newPattern), restoreButton(state.drums.restorePattern)), DrumDisplay(state.drums.pattern, state.drums.mutes, state.clock.currentStep), Mutes(state.drums.mutes), midi ? MidiControls(state.drums.midiDevice, deviceNames, state.drums.midiChannel, state.drums.midiPreset, drumPresetNames, state.drums.midiControls, "horizontal") : emptyElement));
     machineContainer.append(...noteMachines, drumMachine);
     ui.append(machineContainer, otherControls);

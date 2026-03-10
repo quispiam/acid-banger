@@ -400,6 +400,44 @@ function Mutes(params: GeneralisedParameter<boolean>[]) {
     return container;
 }
 
+function OctaveControls(n: ThreeOhMachine) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("octave-controls");
+
+    function octaveField(param: NumericParameter, labelText: string) {
+        const field = document.createElement("div");
+        field.classList.add("bpm-range-field");
+
+        const lbl = document.createElement("span");
+        lbl.classList.add("bpm-range-label");
+        lbl.innerText = labelText;
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = String(param.bounds[0]);
+        input.max = String(param.bounds[1]);
+        input.value = String(param.value);
+        input.classList.add("bpm-range-input");
+
+        input.addEventListener("change", () => {
+            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], parseInt(input.value) || param.value));
+            param.value = v;
+            input.value = String(v);
+        });
+        param.subscribe(v => { input.value = String(v); });
+
+        field.append(lbl, input);
+        return field;
+    }
+
+    const lbl = document.createElement("span");
+    lbl.classList.add("octave-label");
+    lbl.innerText = "Oct";
+
+    wrapper.append(lbl, octaveField(n.octaveMin, "Min"), octaveField(n.octaveMax, "Max"));
+    return wrapper;
+}
+
 function ClockControls(clock: ClockUnit) {
     const container = document.createElement("div");
     container.classList.add("clock-controls");
@@ -576,6 +614,7 @@ export function UI(state: ProgramState, autoPilot: AutoPilotUnit, analyser: Anal
             buttonGroup(
                 triggerButton(n.newPattern),
                 restoreButton(n.restorePattern),
+                OctaveControls(n),
             ),
             PatternDisplay(n.pattern, state.clock.currentStep),
             DialSet(n.parameters),

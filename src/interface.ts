@@ -41,6 +41,8 @@ export type ThreeOhMachine = {
         envMod: NumericParameter,
         decay: NumericParameter
     },
+    octaveMin: NumericParameter,
+    octaveMax: NumericParameter,
     midiDevice: NumericParameter,
     midiChannel: NumericParameter,
     midiPreset: NumericParameter,
