@@ -413,18 +413,7 @@ function ClockControls(clock: ClockUnit) {
     dialContainer.append(dial.element);
     container.append(dialContainer);
 
-    // Randomize button
-    const rndBtn = document.createElement("button");
-    rndBtn.classList.add("trigger-button", "bpm-randomize-button");
-    rndBtn.title = "Randomize BPM";
-    rndBtn.innerText = "⟳";
-    clock.randomizeBpm.subscribe(v => {
-        if (v) rndBtn.classList.add("waiting"); else rndBtn.classList.remove("waiting");
-    });
-    rndBtn.addEventListener("click", () => { clock.randomizeBpm.value = true; });
-    container.append(rndBtn);
-
-    // Min / Max fields
+    // Min / Max + mode selector
     const rangeContainer = document.createElement("div");
     rangeContainer.classList.add("bpm-range");
 
@@ -458,6 +447,32 @@ function ClockControls(clock: ClockUnit) {
         bpmRangeField(clock.bpmMin, "Min"),
         bpmRangeField(clock.bpmMax, "Max"),
     );
+
+    // Auto mode selector: Off / Wander / Jump
+    const modeWrapper = document.createElement("div");
+    modeWrapper.classList.add("bpm-range-field");
+
+    const modeLbl = document.createElement("span");
+    modeLbl.classList.add("bpm-range-label");
+    modeLbl.innerText = "Auto";
+
+    const modeSelect = document.createElement("select");
+    modeSelect.classList.add("bpm-mode-select");
+    ["Off", "Wander", "Jump"].forEach((name, i) => {
+        const opt = document.createElement("option");
+        opt.text = name;
+        opt.value = String(i);
+        modeSelect.add(opt);
+    });
+    modeSelect.selectedIndex = clock.bpmTwiddleMode.value;
+    modeSelect.addEventListener("change", () => {
+        clock.bpmTwiddleMode.value = modeSelect.selectedIndex;
+    });
+    clock.bpmTwiddleMode.subscribe(v => { modeSelect.selectedIndex = v; });
+
+    modeWrapper.append(modeLbl, modeSelect);
+    rangeContainer.append(modeWrapper);
+
     container.append(rangeContainer);
 
     return controlGroup(label("Clock"), container);

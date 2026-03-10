@@ -101,7 +101,7 @@ export type ClockUnit = {
     bpm: NumericParameter,
     bpmMin: NumericParameter,
     bpmMax: NumericParameter,
-    randomizeBpm: Trigger
+    bpmTwiddleMode: NumericParameter   // 0=Off, 1=Wander, 2=Jump
 }
 
 export type MidiUnit = {

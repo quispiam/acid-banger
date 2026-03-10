@@ -492,6 +492,19 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     });
 
     nextMeasure.subscribe(measure => {
+        // Mode 2: trigger smooth BPM jump at similar rate to pattern changes
+        if (state.clock.bpmTwiddleMode.value === 2 && measure % 16 === 0 && Math.random() < 0.5) {
+            const min = Math.min(state.clock.bpmMin.value, state.clock.bpmMax.value);
+            const max = Math.max(state.clock.bpmMin.value, state.clock.bpmMax.value);
+            bpmJumpStartTime = Date.now();
+            bpmJumpStartValue = state.clock.bpm.value;
+            bpmJumpTargetValue = Math.round(min + Math.random() * (max - min));
+            // 2 bars = 32 steps; step duration = 60000 / (bpm * 4) ms
+            bpmJumpDuration = 32 * (60000 / (state.clock.bpm.value * 4));
+            bpmJumping = true;
+            console.log("measure #%d: BPM jump %d -> %d over %dms", measure, bpmJumpStartValue, bpmJumpTargetValue, Math.round(bpmJumpDuration));
+        }
+
         if (patternEnabled.value) {
             if (measure % 64 === 0) {
                 if (Math.random() < 0.2) {
@@ -557,7 +570,40 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     const delayParams = [state.delay.feedback, state.delay.dryWet];
 
     const wanderers = [...noteParams, ...delayParams].map(param => WanderingParameter(param));
-    window.setInterval(() => { if (dialsEnabled.value) wanderers.forEach(w => w.step());}, 100);
+
+    // BPM mode 1: continuous wandering (respects bpmMin/bpmMax)
+    const bpmWanderer = WanderingParameter(state.clock.bpm);
+
+    // BPM mode 2: smooth jump state
+    let bpmJumping = false;
+    let bpmJumpStartTime = 0;
+    let bpmJumpStartValue = 0;
+    let bpmJumpTargetValue = 0;
+    let bpmJumpDuration = 0;
+
+    window.setInterval(() => {
+        if (dialsEnabled.value) {
+            wanderers.forEach(w => w.step());
+
+            // Mode 1: wander BPM continuously
+            if (state.clock.bpmTwiddleMode.value === 1) {
+                bpmWanderer.step();
+                const min = Math.min(state.clock.bpmMin.value, state.clock.bpmMax.value);
+                const max = Math.max(state.clock.bpmMin.value, state.clock.bpmMax.value);
+                if (state.clock.bpm.value < min) state.clock.bpm.value = min;
+                if (state.clock.bpm.value > max) state.clock.bpm.value = max;
+            }
+        }
+
+        // Mode 2: advance smooth BPM transition
+        if (bpmJumping && state.clock.bpmTwiddleMode.value === 2) {
+            const elapsed = Date.now() - bpmJumpStartTime;
+            const t = Math.min(1, elapsed / bpmJumpDuration);
+            const newBpm = bpmJumpStartValue + (bpmJumpTargetValue - bpmJumpStartValue) * t;
+            state.clock.bpm.value = Math.round(newBpm);
+            if (t >= 1) bpmJumping = false;
+        }
+    }, 100);
 
     return {
         switches: [
@@ -572,8 +618,8 @@ function ClockUnit(): ClockUnit {
     const bpmMin = parameter("BPM Min", [40, 300], 70);
     const bpmMax = parameter("BPM Max", [40, 300], 200);
     const bpm = parameter("BPM", [40,300],90);
+    const bpmTwiddleMode = parameter("BPM Auto", [0, 2], 0);  // 0=Off, 1=Wander, 2=Jump
     const currentStep = parameter("Current Step", [0,15],0);
-    const randomizeBpm = trigger("Randomize BPM", false);
     const clockImpl = Clock(bpm.value, 4, 0.0);
 
     bpm.subscribe(clockImpl.setBpm);
@@ -581,20 +627,11 @@ function ClockUnit(): ClockUnit {
         currentStep.value = step % 16;
     })
 
-    randomizeBpm.subscribe(v => {
-        if (v) {
-            const min = Math.min(bpmMin.value, bpmMax.value);
-            const max = Math.max(bpmMin.value, bpmMax.value);
-            bpm.value = Math.round(min + Math.random() * (max - min));
-            randomizeBpm.value = false;
-        }
-    });
-
     return {
         bpm,
         bpmMin,
         bpmMax,
-        randomizeBpm,
+        bpmTwiddleMode,
         currentStep
     }
 }

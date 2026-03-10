@@ -307,3 +307,10 @@ h2 {
 .bpm-range-input::-webkit-outer-spin-button {
     opacity: 1;
 }
+
+.bpm-mode-select {
+    width: 56px;
+    font-size: 11px;
+    text-align: center;
+    min-width: unset;
+}
