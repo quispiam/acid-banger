@@ -413,6 +413,17 @@ function ClockControls(clock: ClockUnit) {
     dialContainer.append(dial.element);
     container.append(dialContainer);
 
+    // Randomize button (triggers a 2-bar smooth jump)
+    const rndBtn = document.createElement("button");
+    rndBtn.classList.add("trigger-button", "bpm-randomize-button");
+    rndBtn.title = "Randomize BPM (smooth 2-bar jump)";
+    rndBtn.innerText = "⟳";
+    clock.randomizeBpm.subscribe(v => {
+        if (v) rndBtn.classList.add("waiting"); else rndBtn.classList.remove("waiting");
+    });
+    rndBtn.addEventListener("click", () => { clock.randomizeBpm.value = true; });
+    container.append(rndBtn);
+
     // Min / Max + mode selector
     const rangeContainer = document.createElement("div");
     rangeContainer.classList.add("bpm-range");

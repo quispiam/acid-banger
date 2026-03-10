@@ -463,10 +463,9 @@ function DelayUnit(audio: AudioT): DelayUnit  {
     const delay = audio.DelayInsert(delayTime.value, feedback.value, dryWet.value);
     dryWet.subscribe(w => delay.wet.value = w);
     feedback.subscribe(f => delay.feedback.value = f);
-    // Use setTargetAtTime instead of direct assignment to avoid clicks when delay
-    // time changes (e.g. when BPM is altered). Time constant of 0.08s is fast
-    // enough to track BPM changes but smooth enough to prevent discontinuities.
-    delayTime.subscribe(t => delay.delayTime.setTargetAtTime(t, audio.context.currentTime, 0.08));
+    // Direct assignment — caller is responsible for only updating delayTime at
+    // bar boundaries (step 0) to avoid pitch-warble artefacts.
+    delayTime.subscribe(t => delay.delayTime.value = t);
 
     return {
         dryWet,
@@ -494,18 +493,31 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
         }
     });
 
+    function triggerBpmJump() {
+        const min = Math.min(state.clock.bpmMin.value, state.clock.bpmMax.value);
+        const max = Math.max(state.clock.bpmMin.value, state.clock.bpmMax.value);
+        bpmJumpStartTime = Date.now();
+        bpmJumpStartValue = state.clock.bpm.value;
+        bpmJumpTargetValue = Math.round(min + Math.random() * (max - min));
+        // 2 bars = 32 steps; step duration = 60000 / (bpm * 4) ms
+        bpmJumpDuration = 32 * (60000 / (state.clock.bpm.value * 4));
+        bpmJumping = true;
+        console.log("BPM jump %d -> %d over %dms", bpmJumpStartValue, bpmJumpTargetValue, Math.round(bpmJumpDuration));
+    }
+
+    // Randomize button triggers an immediate 2-bar jump
+    state.clock.randomizeBpm.subscribe(v => {
+        if (v) {
+            triggerBpmJump();
+            state.clock.randomizeBpm.value = false;
+        }
+    });
+
     nextMeasure.subscribe(measure => {
         // Mode 2: trigger smooth BPM jump at similar rate to pattern changes
         if (state.clock.bpmTwiddleMode.value === 2 && measure % 16 === 0 && Math.random() < 0.5) {
-            const min = Math.min(state.clock.bpmMin.value, state.clock.bpmMax.value);
-            const max = Math.max(state.clock.bpmMin.value, state.clock.bpmMax.value);
-            bpmJumpStartTime = Date.now();
-            bpmJumpStartValue = state.clock.bpm.value;
-            bpmJumpTargetValue = Math.round(min + Math.random() * (max - min));
-            // 2 bars = 32 steps; step duration = 60000 / (bpm * 4) ms
-            bpmJumpDuration = 32 * (60000 / (state.clock.bpm.value * 4));
-            bpmJumping = true;
-            console.log("measure #%d: BPM jump %d -> %d over %dms", measure, bpmJumpStartValue, bpmJumpTargetValue, Math.round(bpmJumpDuration));
+            triggerBpmJump();
+            console.log("measure #%d: auto BPM jump triggered", measure);
         }
 
         if (patternEnabled.value) {
@@ -622,6 +634,7 @@ function ClockUnit(): ClockUnit {
     const bpmMax = parameter("BPM Max", [40, 300], 200);
     const bpm = parameter("BPM", [40,300],90);
     const bpmTwiddleMode = parameter("BPM Auto", [0, 2], 0);  // 0=Off, 1=Wander, 2=Jump
+    const randomizeBpm = trigger("Randomize BPM", false);
     const currentStep = parameter("Current Step", [0,15],0);
     const clockImpl = Clock(bpm.value, 4, 0.0);
 
@@ -635,6 +648,7 @@ function ClockUnit(): ClockUnit {
         bpmMin,
         bpmMax,
         bpmTwiddleMode,
+        randomizeBpm,
         currentStep
     }
 }
@@ -643,7 +657,16 @@ async function start() {
     const audio = Audio();
     const clock = ClockUnit();
     const delay = DelayUnit(audio);
-    clock.bpm.subscribe(b => delay.delayTime.value = (3/4) * (60/b));
+    // Only update the delay time at bar boundaries (step 0) to avoid pitch-warble
+    // artefacts caused by continuously moving the delay line length.
+    let pendingDelayTime: number | null = null;
+    clock.bpm.subscribe(b => { pendingDelayTime = (3/4) * (60/b); });
+    clock.currentStep.subscribe(step => {
+        if (step === 0 && pendingDelayTime !== null) {
+            delay.delayTime.value = pendingDelayTime;
+            pendingDelayTime = null;
+        }
+    });
 
     const gen = SynthwaveGen();
     const programState: ProgramState = {
