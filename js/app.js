@@ -414,7 +414,10 @@ function DelayUnit(audio) {
     const delay = audio.DelayInsert(delayTime.value, feedback.value, dryWet.value);
     dryWet.subscribe(w => delay.wet.value = w);
     feedback.subscribe(f => delay.feedback.value = f);
-    delayTime.subscribe(t => delay.delayTime.value = t);
+    // Use setTargetAtTime instead of direct assignment to avoid clicks when delay
+    // time changes (e.g. when BPM is altered). Time constant of 0.08s is fast
+    // enough to track BPM changes but smooth enough to prevent discontinuities.
+    delayTime.subscribe(t => delay.delayTime.setTargetAtTime(t, audio.context.currentTime, 0.08));
     return {
         dryWet,
         feedback,
