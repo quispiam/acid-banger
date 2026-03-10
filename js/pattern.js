@@ -3,7 +3,7 @@
   This work is licensed under a Creative Commons Attribution 4.0 International License
   https://creativecommons.org/licenses/by/4.0/
 */
-import { midiNoteToText } from "./audio.js";
+import { midiNoteToText, textNoteToNumber } from "./audio.js";
 import { choose, rndInt } from "./math.js";
 import { genericParameter, trigger } from "./interface.js";
 export function ThreeOhGen() {
@@ -56,7 +56,7 @@ export function ThreeOhGen() {
         noteSet
     };
 }
-export function SynthwaveGen(getOctaveRange = () => [2, 4]) {
+export function SynthwaveGen(getOctaveRange = () => [2, 4], getSharedNoteSet) {
     let noteSet = genericParameter("note set", ['C3']);
     let newNotes = trigger("new note set", true);
     const density = 0.8;
@@ -83,13 +83,36 @@ export function SynthwaveGen(getOctaveRange = () => [2, 4]) {
     const offsetChoices = [...synthOffsetChoices, ...acidOffsetChoices];
     function changeNotes() {
         const [minOct, maxOct] = getOctaveRange();
-        // MIDI note: C0=12, C1=24, C2=36, C3=48, C4=60
+        // MIDI: C(oct) = oct * 12 + 12
         const minMidi = minOct * 12 + 12;
-        const maxMidi = maxOct * 12 + 12; // bottom of max octave
-        // pick a root anywhere from minMidi up to maxMidi so the root itself lands in range
-        const root = minMidi + rndInt(Math.max(1, maxMidi - minMidi + 1));
-        const offsets = choose(offsetChoices);
-        noteSet.value = offsets.map(o => midiNoteToText(o + root));
+        const maxMidi = (maxOct + 1) * 12 + 11; // top note of maxOct (inclusive)
+        if (getSharedNoteSet) {
+            // Shared-key mode: take the pitch classes from the global gen's noteSet
+            // and find all transpositions that fall within our octave range.
+            const sharedNotes = getSharedNoteSet();
+            const remapped = [];
+            for (const note of sharedNotes) {
+                const midiVal = textNoteToNumber(note);
+                const pitchClass = midiVal % 12; // 0–11
+                // Walk up from the bottom of our range finding every octave of this pitch class
+                // that lands within [minMidi, maxMidi].
+                let candidate = pitchClass + 12; // pitch class in octave 0 (MIDI formula: pc + 12)
+                while (candidate < minMidi)
+                    candidate += 12;
+                while (candidate <= maxMidi) {
+                    remapped.push(midiNoteToText(candidate));
+                    candidate += 12;
+                }
+            }
+            noteSet.value = remapped.length > 0 ? [...new Set(remapped)] : [midiNoteToText(minMidi)];
+        }
+        else {
+            // Primary mode: pick a fresh root + interval set within the octave range.
+            const rootCeiling = maxOct * 12 + 12; // bottom of maxOct
+            const root = minMidi + rndInt(Math.max(1, rootCeiling - minMidi + 1));
+            const offsets = choose(offsetChoices);
+            noteSet.value = offsets.map(o => midiNoteToText(o + root));
+        }
     }
     function createPattern() {
         if (newNotes.value == true) {

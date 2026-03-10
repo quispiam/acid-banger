@@ -156,8 +156,12 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
     const newPattern = trigger("New Pattern Trigger", true);
     const restorePattern = trigger("Restore Pattern Trigger", false);
 
-    // Each ThreeOhUnit gets its own generator that reads the octave range at generation time
-    const localGen = SynthwaveGen(() => [octaveMin.value, octaveMax.value]);
+    // Each ThreeOhUnit gets its own generator that remaps the shared key's pitch classes
+    // into its own octave range, so both synth channels stay in the same key.
+    const localGen = SynthwaveGen(
+        () => [octaveMin.value, octaveMax.value],
+        () => gen.noteSet.value
+    );
 
     const parameters = {
         cutoff: parameter("Cutoff", [30,700], 400),
@@ -701,6 +705,14 @@ async function start() {
     });
 
     const gen = SynthwaveGen();
+
+    // Consume the shared gen's newNotes trigger so the NoteGen UI panel
+    // gets populated (noteSet updated, flashing ⟳ button cleared).
+    // Each ThreeOhUnit propagates this trigger to its own localGen for actual pattern generation.
+    gen.newNotes.subscribe(v => {
+        if (v) gen.createPattern();
+    });
+
     const programState: ProgramState = {
         notes: [
             ThreeOhUnit(audio, midi, "triangle", delay.inputNode, clock.bpm, gen, 16, 2, 4),  // lead: octaves 2-4
