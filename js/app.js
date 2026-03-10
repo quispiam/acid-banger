@@ -281,7 +281,13 @@ function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16
 }
 function NineOhUnit(audio, midi, bpm) {
     return __awaiter(this, void 0, void 0, function* () {
-        const drums = yield audio.SamplerDrumMachine(["samples/bd01.mp4", "samples/oh01.mp4", "samples/hh01.mp4", "samples/sd02.mp4", "samples/cp01.mp4"]);
+        // Synth sample set (5 tracks: BD, OH, CH, SD, CP)
+        const synthDrums = yield audio.SamplerDrumMachine(["samples/bd01.mp4", "samples/oh01.mp4", "samples/hh01.mp4", "samples/sd02.mp4", "samples/cp01.mp4"]);
+        // 909 acid sample set (4 tracks: BD, OH, CH, SD — no clap)
+        const acidDrums = yield audio.SamplerDrumMachine(["samples/909BD.mp3", "samples/909OH.mp3", "samples/909CH.mp3", "samples/909SD.mp3"]);
+        // Which sample to use per track, decided at pattern-generation time.
+        // 0 = synth, 1 = 909. CP (index 4) is always 0.
+        let currentSampleVariants = [0, 0, 0, 0, 0];
         const midiDevice = parameter("MIDI Device", [0, Infinity], 0);
         const midiChannel = parameter("MIDI Channel", [0, 15], 0);
         const midiPreset = parameter("Preset", [0, Infinity], 0);
@@ -329,7 +335,9 @@ function NineOhUnit(audio, midi, bpm) {
         function step(index) {
             if ((index == 0 && newPattern.value == true) || pattern.value.length == 0) {
                 savedPattern.value = pattern.value;
-                pattern.value = gen.createPatterns(true);
+                const result = gen.createPatterns(true);
+                pattern.value = result.patterns;
+                currentSampleVariants = result.sampleVariants;
                 newPattern.value = false;
             }
             if (index === 0 && restorePattern.value == true && savedPattern.value.length > 0) {
@@ -352,7 +360,11 @@ function NineOhUnit(audio, midi, bpm) {
             for (let i in pattern.value) {
                 const entry = pattern.value[i][index % pattern.value[i].length];
                 if (entry && !mutes[i].value) {
-                    drums.triggers[i].play(entry);
+                    // Use the sample chosen at pattern-generation time
+                    const trackIdx = Number(i);
+                    const useAcid = currentSampleVariants[trackIdx] === 1 && trackIdx < acidDrums.triggers.length;
+                    const triggers = useAcid ? acidDrums.triggers : synthDrums.triggers;
+                    triggers[trackIdx].play(entry);
                     hasNotes = true;
                     if (midi) {
                         const channel = midiChannels[i].value >= 0 ? midiChannels[i].value : midiChannel.value;
