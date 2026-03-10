@@ -167,9 +167,10 @@ function ThreeOhUnit(audio, midi, waveform, output, bpm, gen, patternLength = 16
         if (newNotes == true)
             newPattern.value = true;
     });
-    // Changing the octave range immediately triggers a fresh pattern
-    octaveMin.subscribe(() => { newPattern.value = true; });
-    octaveMax.subscribe(() => { newPattern.value = true; });
+    // Changing the octave range immediately triggers a fresh pattern *and* new notes
+    // so that changeNotes() re-picks a root within the updated octave bounds.
+    octaveMin.subscribe(() => { localGen.newNotes.value = true; newPattern.value = true; });
+    octaveMax.subscribe(() => { localGen.newNotes.value = true; newPattern.value = true; });
     function step(index) {
         if ((index === 0 && newPattern.value == true) || pattern.value.length == 0) {
             savedPattern.value = pattern.value;
