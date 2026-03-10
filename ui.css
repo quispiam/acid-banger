@@ -44,13 +44,20 @@ a {
     }
 }
 
-.machine, .control-group {
+.machine {
+    background-color: var(--panel);
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    border: 1px solid var(--accent);
+    margin: 5px;
+}
 
+.control-group {
     background-color: var(--panel);
     display: grid;
     grid-template-columns: 20px auto;
     border: 1px solid var(--accent);
-    margin:5px;
+    margin: 5px;
 }
 
 .label {
@@ -64,6 +71,7 @@ a {
 .machine .group {
     display: grid;
     grid-template-columns: 25px auto 70px;
+    grid-column: 2;
 }
 
 .controls {
@@ -72,7 +80,8 @@ a {
 }
 
 .control-group {
-    height: 100px;
+    min-height: 100px;
+    height: auto;
 }
 
 .control-group .group {
@@ -315,13 +324,16 @@ h2 {
     min-width: unset;
 }
 
-/* Octave min/max controls inside 303 machine button group */
+/* Octave min/max controls — 3rd column of machine grid */
 .octave-controls {
+    grid-column: 3;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    padding: 2px 4px;
+    padding: 4px 6px;
+    border-left: 1px solid var(--accent);
 }
 
 .octave-label {
@@ -329,7 +341,14 @@ h2 {
     color: #aaa;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    margin-right: 2px;
+}
+
+/* Clock control-group: make room for all BPM controls */
+.control-group.clock-group {
+    height: auto;
+    min-height: 120px;
+}
+
+.clock-controls {
+    overflow: visible;
 }

@@ -524,7 +524,9 @@ function ClockControls(clock: ClockUnit) {
 
     container.append(rangeContainer);
 
-    return controlGroup(label("Clock"), container);
+    const cg = controlGroup(label("Clock"), container);
+    cg.classList.add("clock-group");
+    return cg;
 }
 
 function DelayControls(delayUnit: DelayUnit) {
@@ -614,12 +616,12 @@ export function UI(state: ProgramState, autoPilot: AutoPilotUnit, analyser: Anal
             buttonGroup(
                 triggerButton(n.newPattern),
                 restoreButton(n.restorePattern),
-                OctaveControls(n),
             ),
             PatternDisplay(n.pattern, state.clock.currentStep),
             DialSet(n.parameters),
             midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement,
-        )
+        ),
+        OctaveControls(n),
     ));
 
     const drumMachine = machine(

@@ -410,7 +410,9 @@ function ClockControls(clock) {
     modeWrapper.append(modeLbl, modeSelect);
     rangeContainer.append(modeWrapper);
     container.append(rangeContainer);
-    return controlGroup(label("Clock"), container);
+    const cg = controlGroup(label("Clock"), container);
+    cg.classList.add("clock-group");
+    return cg;
 }
 function DelayControls(delayUnit) {
     const controls = DialSet([delayUnit.dryWet, delayUnit.feedback]);
@@ -462,7 +464,7 @@ export function UI(state, autoPilot, analyser, midi) {
     const deviceNames = midi ? midi.getOutputNames() : [];
     const notePresetNames = [...midiControlPresets.keys()];
     const drumPresetNames = [...midiDrumPresets.keys()];
-    const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern), OctaveControls(n)), PatternDisplay(n.pattern, state.clock.currentStep), DialSet(n.parameters), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement)));
+    const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern)), PatternDisplay(n.pattern, state.clock.currentStep), DialSet(n.parameters), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement), OctaveControls(n)));
     const drumMachine = machine(label("909-XX"), group(buttonGroup(triggerButton(state.drums.newPattern), restoreButton(state.drums.restorePattern)), DrumDisplay(state.drums.pattern, state.drums.mutes, state.clock.currentStep), Mutes(state.drums.mutes), midi ? MidiControls(state.drums.midiDevice, deviceNames, state.drums.midiChannel, state.drums.midiPreset, drumPresetNames, state.drums.midiControls, "horizontal") : emptyElement));
     machineContainer.append(...noteMachines, drumMachine);
     ui.append(machineContainer, otherControls);
