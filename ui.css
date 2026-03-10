@@ -70,7 +70,7 @@ a {
 
 .machine .group {
     display: grid;
-    grid-template-columns: 25px auto;
+    grid-template-columns: 25px 1fr auto;
     grid-column: 2;
 }
 
