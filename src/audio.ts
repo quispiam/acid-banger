@@ -110,14 +110,19 @@ export function Audio(au: AudioContext = new (window.AudioContext || window.webk
     }
 
     // from https://stackoverflow.com/questions/22312841/waveshaper-node-in-webaudio-how-to-emulate-distortion
-    function makeDistortionCurve(amount: number = 50, gain: number = 20) {
+    // Curve is normalized so peak output is always ≤ 1.0 regardless of amount,
+    // preventing distortion from boosting perceived loudness.
+    function makeDistortionCurve(amount: number = 50) {
         const n_samples = 256;
         const curve = new Float32Array(n_samples);
         const deg = Math.PI / 180;
         for (let i = 0; i < n_samples; ++i ) {
             const x = i * 2 / n_samples - 1;
-            curve[i] = ( 3 + amount ) * x * gain * deg / ( Math.PI + amount * Math.abs(x) );
+            curve[i] = ( 3 + amount ) * x * 20 * deg / ( Math.PI + amount * Math.abs(x) );
         }
+        // Normalize so the peak absolute value is 1.0, keeping volume consistent
+        const peak = curve.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+        if (peak > 0) for (let i = 0; i < n_samples; i++) curve[i] /= peak;
         return curve;
     };
 

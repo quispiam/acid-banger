@@ -168,7 +168,10 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
         resonance: parameter("Resonance", [1,30], 15),
         envMod: parameter("Env Mod", [0,8000], 4000),
         decay: parameter("Decay", [0.1,0.9], 0.5),
-        distortion: parameter("Dist", [0,80], 0)
+        // Extended to [-60,80] so WanderingParameter can push below 0.
+        // Values < 0 are clamped to 0 (off) when applied to the audio node,
+        // causing the wanderer to naturally spend significant time silent.
+        distortion: parameter("Dist", [-60,80], 0)
     };
 
     const midiControls = {
@@ -255,7 +258,7 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
     parameters.resonance.subscribe(v => synth.params.resonance.value = v);
     parameters.envMod.subscribe(v => synth.params.envMod.value = v);
     parameters.decay.subscribe(v => synth.params.decay.value = v);
-    parameters.distortion.subscribe(v => synth.params.distortion.value = v);
+    parameters.distortion.subscribe(v => synth.params.distortion.value = Math.max(0, v));
 
     if (midi) {
         midiDevice.subscribe(d => {
@@ -666,10 +669,10 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
 }
 
 function ClockUnit(): ClockUnit {
-    const bpmMin = parameter("BPM Min", [40, 300], 70);
-    const bpmMax = parameter("BPM Max", [40, 300], 200);
+    const bpmMin = parameter("BPM Min", [40, 300], 80);
+    const bpmMax = parameter("BPM Max", [40, 300], 130);
     const bpm = parameter("BPM", [40,300],90);
-    const bpmTwiddleMode = parameter("BPM Auto", [0, 2], 0);  // 0=Off, 1=Wander, 2=Jump
+    const bpmTwiddleMode = parameter("BPM Auto", [0, 2], 2);  // 0=Off, 1=Wander, 2=Jump
     const randomizeBpm = trigger("Randomize BPM", false);
     const currentStep = parameter("Current Step", [0,15],0);
     const clockImpl = Clock(bpm.value, 4, 0.0);
