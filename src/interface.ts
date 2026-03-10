@@ -39,7 +39,8 @@ export type ThreeOhMachine = {
         cutoff: NumericParameter,
         resonance: NumericParameter,
         envMod: NumericParameter,
-        decay: NumericParameter
+        decay: NumericParameter,
+        distortion: NumericParameter
     },
     octaveMin: NumericParameter,
     octaveMax: NumericParameter,

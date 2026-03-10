@@ -168,10 +168,7 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
         resonance: parameter("Resonance", [1,30], 15),
         envMod: parameter("Env Mod", [0,8000], 4000),
         decay: parameter("Decay", [0.1,0.9], 0.5),
-        // Extended to [-60,80] so WanderingParameter can push below 0.
-        // Values < 0 are clamped to 0 (off) when applied to the audio node,
-        // causing the wanderer to naturally spend significant time silent.
-        distortion: parameter("Dist", [-60,80], 0)
+        distortion: parameter("Dist", [0,80], 0)
     };
 
     const midiControls = {
@@ -258,7 +255,7 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
     parameters.resonance.subscribe(v => synth.params.resonance.value = v);
     parameters.envMod.subscribe(v => synth.params.envMod.value = v);
     parameters.decay.subscribe(v => synth.params.decay.value = v);
-    parameters.distortion.subscribe(v => synth.params.distortion.value = Math.max(0, v));
+    parameters.distortion.subscribe(v => synth.params.distortion.value = v);
 
     if (midi) {
         midiDevice.subscribe(d => {
@@ -620,10 +617,53 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
             }
         }
     })
-    const noteParams = state.notes.flatMap(x => Object.values(x.parameters))
+    // Separate distortion params out so they can use a custom extended-range wanderer.
+    // All other note params use the standard WanderingParameter.
+    const distortionParams = state.notes.map(x => x.parameters.distortion);
+    const noteParams = state.notes.flatMap(x =>
+        Object.values(x.parameters).filter(p => p !== x.parameters.distortion)
+    );
     const delayParams = [state.delay.feedback, state.delay.dryWet];
 
     const wanderers = [...noteParams, ...delayParams].map(param => WanderingParameter(param));
+
+    // Distortion wanderer: internal shadow value ranges -60 to 80.
+    // When shadow < 0 the parameter is clamped to 0 (off), giving natural extended
+    // silent periods. The knob itself stays [0,80] so it still looks/feels correct.
+    const distortionWanderers = distortionParams.map(param => {
+        let shadow = 0;
+        let diff = 0;
+        let touchCountdown = 0;
+        let previousValue = param.value;
+        const scale = (1/400) * 140; // 140 = virtual range -60..80
+
+        return {
+            step: () => {
+                if (previousValue !== param.value) {
+                    // Manual adjustment — sync shadow to current knob value and pause
+                    shadow = param.value;
+                    diff = 0;
+                    previousValue = param.value;
+                    touchCountdown = 200;
+                    return;
+                }
+                if (touchCountdown > 0) touchCountdown--;
+                if (touchCountdown < 100) {
+                    diff *= touchCountdown > 0 ? 0.8 : 0.98;
+                    diff += (Math.random() - 0.5) * scale;
+                    shadow += diff;
+                    shadow = Math.max(-60, Math.min(80, shadow));
+                    // Bias back toward centre of virtual range (10) when near extremes
+                    if (shadow > 52)  diff -= Math.random() * scale;
+                    else if (shadow < -36) diff += Math.random() * scale;
+                    // Write clamped value — negative shadow = distortion off
+                    const clamped = Math.max(0, shadow);
+                    param.value = clamped;
+                    previousValue = clamped;
+                }
+            }
+        };
+    });
 
     // BPM mode 1: continuous wandering (respects bpmMin/bpmMax)
     const bpmWanderer = WanderingParameter(state.clock.bpm);
@@ -638,6 +678,7 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     window.setInterval(() => {
         if (dialsEnabled.value) {
             wanderers.forEach(w => w.step());
+            distortionWanderers.forEach(w => w.step());
 
             // Mode 1: wander BPM continuously
             if (state.clock.bpmTwiddleMode.value === 1) {

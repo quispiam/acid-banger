@@ -110,8 +110,9 @@ export function Audio(au: AudioContext = new (window.AudioContext || window.webk
     }
 
     // from https://stackoverflow.com/questions/22312841/waveshaper-node-in-webaudio-how-to-emulate-distortion
-    // Curve is normalized so peak output is always ≤ 1.0 regardless of amount,
-    // preventing distortion from boosting perceived loudness.
+    // Normalized by the small-signal gain at a reference amplitude (~0.15, matching the VCA
+    // level), so notes pass through at consistent perceived loudness regardless of distortion
+    // amount. Distortion adds harmonic character (saturation) without boosting volume.
     function makeDistortionCurve(amount: number = 50) {
         const n_samples = 256;
         const curve = new Float32Array(n_samples);
@@ -120,9 +121,12 @@ export function Audio(au: AudioContext = new (window.AudioContext || window.webk
             const x = i * 2 / n_samples - 1;
             curve[i] = ( 3 + amount ) * x * 20 * deg / ( Math.PI + amount * Math.abs(x) );
         }
-        // Normalize so the peak absolute value is 1.0, keeping volume consistent
-        const peak = curve.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
-        if (peak > 0) for (let i = 0; i < n_samples; i++) curve[i] /= peak;
+        // Compute gain at typical VCA output level (~0.15). Normalizing by this keeps
+        // perceived loudness consistent: signals near that amplitude are unity-gained
+        // regardless of how hard the curve saturates at higher amplitudes.
+        const refX = 0.15;
+        const refGain = ( 3 + amount ) * 20 * deg / ( Math.PI + amount * refX );
+        if (refGain > 0) for (let i = 0; i < n_samples; i++) curve[i] /= refGain;
         return curve;
     };
 
