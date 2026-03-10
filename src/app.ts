@@ -192,10 +192,16 @@ function ThreeOhUnit(audio: AudioT, midi: MidiT, waveform: OscillatorType, outpu
     octaveMin.subscribe(() => { localGen.newNotes.value = true; newPattern.value = true; });
     octaveMax.subscribe(() => { localGen.newNotes.value = true; newPattern.value = true; });
 
+    // All three classic waveforms in the random pool — sawtooth and square are from the
+    // original acid banger; triangle is the synthwave lead tone.
+    const waveforms: OscillatorType[] = ["sawtooth", "square", "triangle"];
+
     function step(index: number) {
         if ((index === 0 && newPattern.value == true) || pattern.value.length == 0) {
             savedPattern.value = pattern.value;
             pattern.value = localGen.createPattern();
+            // Pick a new waveform at pattern-generation time
+            synth.setWaveform(waveforms[Math.floor(Math.random() * waveforms.length)]);
             newPattern.value = false;
         }
 

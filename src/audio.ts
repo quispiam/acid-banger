@@ -279,9 +279,14 @@ export function Audio(au: AudioContext = new (window.AudioContext || window.webk
             vca.gain.setTargetAtTime(0.0,au.currentTime,0.01);
         }
 
+        function setWaveform(type: OscillatorType) {
+            osc.type = type;
+        }
+
         return {
             noteOn,
             noteOff,
+            setWaveform,
             params: {
                 cutoff: pCutoff,
                 resonance: pResonance,

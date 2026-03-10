@@ -243,9 +243,13 @@ export function Audio(au = new (window.AudioContext || window.webkitAudioContext
             vca.gain.cancelScheduledValues(au.currentTime);
             vca.gain.setTargetAtTime(0.0, au.currentTime, 0.01);
         }
+        function setWaveform(type) {
+            osc.type = type;
+        }
         return {
             noteOn,
             noteOff,
+            setWaveform,
             params: {
                 cutoff: pCutoff,
                 resonance: pResonance,
