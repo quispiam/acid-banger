@@ -391,3 +391,75 @@ h2 {
     margin-top: 2px;
     white-space: nowrap;
 }
+
+/* Randomisation panel */
+.rnd-panel {
+    background-color: var(--panel);
+    border: 1px solid var(--accent);
+    margin: 5px;
+    padding: 8px 12px 12px;
+}
+
+.rnd-panel-heading {
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 4px;
+}
+
+.rnd-sections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.rnd-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+}
+
+.rnd-section-heading {
+    font-size: 9px;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(0,255,230,0.25);
+    padding-bottom: 3px;
+    margin-bottom: 2px;
+}
+
+.rnd-field {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.rnd-label {
+    font-size: 9px;
+    color: #aaa;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rnd-input {
+    width: 52px;
+    text-align: center;
+    font-size: 11px;
+    padding: 2px;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+}
+
+.rnd-input::-webkit-inner-spin-button,
+.rnd-input::-webkit-outer-spin-button {
+    opacity: 1;
+}

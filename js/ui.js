@@ -436,6 +436,54 @@ function DelayControls(delayUnit) {
 function AutopilotControls(autoPilot) {
     return controlGroup(label("Autopilot"), group(...autoPilot.switches.map(p => toggleButton(p, "autopilot-button"))));
 }
+function RandomisationControls(autoPilot) {
+    const r = autoPilot.randomisation;
+    function rndField(param, isFloat = false) {
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("rnd-field");
+        const lbl = document.createElement("span");
+        lbl.classList.add("rnd-label");
+        lbl.innerText = param.name;
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = String(param.bounds[0]);
+        input.max = String(param.bounds[1]);
+        input.step = isFloat ? "0.1" : "1";
+        input.value = String(isFloat ? param.value : Math.round(param.value));
+        input.classList.add("rnd-input");
+        input.addEventListener("change", () => {
+            const parsed = isFloat ? parseFloat(input.value) : parseInt(input.value);
+            const v = Math.max(param.bounds[0], Math.min(param.bounds[1], isNaN(parsed) ? param.value : parsed));
+            param.value = v;
+            input.value = String(isFloat ? v : Math.round(v));
+        });
+        param.subscribe(v => { input.value = String(isFloat ? v : Math.round(v)); });
+        wrapper.append(lbl, input);
+        return wrapper;
+    }
+    function rndSection(title, ...fields) {
+        const section = document.createElement("div");
+        section.classList.add("rnd-section");
+        const heading = document.createElement("div");
+        heading.classList.add("rnd-section-heading");
+        heading.innerText = title;
+        const body = document.createElement("div");
+        body.classList.add("rnd-section-body");
+        body.append(...fields);
+        section.append(heading, body);
+        return section;
+    }
+    const container = document.createElement("div");
+    container.classList.add("rnd-panel");
+    const heading = document.createElement("div");
+    heading.classList.add("rnd-panel-heading");
+    heading.innerText = "Randomisation";
+    const sections = document.createElement("div");
+    sections.classList.add("rnd-sections");
+    sections.append(rndSection("Notes", rndField(r.noteChangeMeasures), rndField(r.noteChangeChance), rndField(r.newNotesChangeMeasures), rndField(r.newNotesChangeChance)), rndSection("Drums", rndField(r.drumChangeMeasures), rndField(r.drumChangeChance)), rndSection("Drum Mutes", rndField(r.muteMeasures), rndField(r.muteBDChance), rndField(r.muteOHChance), rndField(r.muteCHChance), rndField(r.muteSDChance), rndField(r.muteCPChance)), rndSection("BPM", rndField(r.bpmJumpMeasures), rndField(r.bpmJumpChance)));
+    container.append(heading, sections);
+    return container;
+}
 function AudioMeter(analyser) {
     const canvas = document.createElement("canvas");
     canvas.style.width = "100%";
@@ -481,7 +529,7 @@ export function UI(state, autoPilot, analyser, midi) {
     const noteMachines = state.notes.map((n, i) => machine(label("303-0" + (i + 1)), group(buttonGroup(triggerButton(n.newPattern), restoreButton(n.restorePattern)), PatternDisplay(n.pattern, state.clock.currentStep), DialSetWithOctaves(n), midi ? MidiControls(n.midiDevice, deviceNames, n.midiChannel, n.midiPreset, notePresetNames, n.midiControls, "horizontal") : emptyElement)));
     const drumMachine = machine(label("909-XX"), group(buttonGroup(triggerButton(state.drums.newPattern), restoreButton(state.drums.restorePattern)), DrumDisplay(state.drums.pattern, state.drums.mutes, state.clock.currentStep), Mutes(state.drums.mutes), midi ? MidiControls(state.drums.midiDevice, deviceNames, state.drums.midiChannel, state.drums.midiPreset, drumPresetNames, state.drums.midiControls, "horizontal") : emptyElement));
     machineContainer.append(...noteMachines, drumMachine);
-    ui.append(machineContainer, otherControls);
+    ui.append(machineContainer, otherControls, RandomisationControls(autoPilot));
     return ui;
 }
 //# sourceMappingURL=ui.js.map

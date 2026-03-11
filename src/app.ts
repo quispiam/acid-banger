@@ -518,6 +518,22 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     const dialsEnabled = genericParameter("Twiddle With Knobs", true);
     const mutesEnabled = genericParameter("Mute Drum Parts", true);
 
+    // Randomisation parameters — exposed to UI
+    const noteChangeMeasures       = parameter("Note Pattern Every (measures)", [1, 128], 16);
+    const noteChangeChance         = parameter("Note Pattern Chance (%)", [0, 100], 50);
+    const newNotesChangeMeasures   = parameter("New Notes Every (measures)", [1, 256], 64);
+    const newNotesChangeChance     = parameter("New Notes Chance (%)", [0, 100], 20);
+    const drumChangeMeasures       = parameter("Drum Pattern Every (measures)", [1, 128], 16);
+    const drumChangeChance         = parameter("Drum Pattern Chance (%)", [0, 100], 30);
+    const muteMeasures             = parameter("Drum Mute Every (measures)", [1, 64], 8);
+    const muteBDChance             = parameter("Mute BD Chance (%)", [0, 100], 20);
+    const muteOHChance             = parameter("Mute OH Chance (%)", [0, 100], 50);
+    const muteCHChance             = parameter("Mute CH Chance (%)", [0, 100], 50);
+    const muteSDChance             = parameter("Mute SD Chance (%)", [0, 100], 50);
+    const muteCPChance             = parameter("Mute CP Chance (%)", [0, 100], 80);
+    const bpmJumpMeasures          = parameter("BPM Jump Every (measures)", [1, 128], 32);
+    const bpmJumpChance            = parameter("BPM Jump Chance (%)", [0, 100], 20);
+
     var lastDrumChange = 0;
     var lastNoteChange = [0,0];
 
@@ -555,58 +571,60 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     });
 
     nextMeasure.subscribe(measure => {
-        // Mode 1: trigger smooth BPM jump — every 32 measures with 50% chance
-        if (state.clock.bpmTwiddleMode.value === 1 && measure % 32 === 0 && Math.random() < 0.2) {
+        // BPM jump — configurable interval and chance
+        if (state.clock.bpmTwiddleMode.value === 1 && measure % bpmJumpMeasures.value === 0 && Math.random() < bpmJumpChance.value / 100) {
             triggerBpmJump();
             console.log("measure #%d: auto BPM jump triggered", measure);
         }
 
         if (patternEnabled.value) {
-            if (measure % 64 === 0) {
-                if (Math.random() < 0.2) {
+            // New note set — configurable interval and chance
+            if (measure % newNotesChangeMeasures.value === 0) {
+                if (Math.random() < newNotesChangeChance.value / 100) {
                     console.log("measure #%d: will generate new notes", measure);
                     state.gen.newNotes.value = true;
                     lastNoteChange[0] = lastNoteChange[1] = measure;
                 }
             }
-            if (measure % 16 === 0) {
+            // New note patterns — configurable interval and chance
+            if (measure % noteChangeMeasures.value === 0) {
                 state.notes.forEach((n, i) => {
-                    if (Math.random() < 0.5) {
+                    if (Math.random() < noteChangeChance.value / 100) {
                         console.log("measure #%d: will generate new pattern for unit %d", measure, i);
                         n.newPattern.value = true;
                         lastNoteChange[i] = measure;
                     }
                 });
-                if (Math.random() < 0.3) {
+            }
+            // New drum pattern — configurable interval and chance
+            if (measure % drumChangeMeasures.value === 0) {
+                if (Math.random() < drumChangeChance.value / 100) {
                     console.log("measure #%d: will generate new pattern for drums", measure);
                     state.drums.newPattern.value = true;
                     lastDrumChange = measure;
                 }
-            } else if (measure % 16 === 4) {
-                state.notes.every((n, i) => {
-                    const age = measure - lastNoteChange[i];
-                    if (age >= 20 && Math.random() < 0.5) {
-                        console.log("measure #%d: will generate new pattern for unit %d (age %d)", measure, i, age);
-                        n.newPattern.value = true;
-                        lastNoteChange[i] = measure;
-                        return;
-                    }
-                });
             }
         }
     })
 
     currentMeasure.subscribe(measure => {
         if (mutesEnabled.value) {
-            const drumMutes = [Math.random() < 0.2, Math.random() < 0.5, Math.random() < 0.5, Math.random() < 0.5, Math.random() < 0.8];
+            const perTrackChances = [
+                muteBDChance.value / 100,
+                muteOHChance.value / 100,
+                muteCHChance.value / 100,
+                muteSDChance.value / 100,
+                muteCPChance.value / 100,
+            ];
+            const drumMutes = perTrackChances.map(c => Math.random() < c);
             const numActive = state.drums.mutes.reduce((sum, current) => !current.value ? sum+1 : sum, 0);
-            if (measure % 8 === 0) {
+            if (measure % muteMeasures.value === 0) {
                 console.log("measure #%d: may mute drum parts", measure);
                 state.drums.mutes.forEach((m, i) => {
                     m.value = drumMutes[i];
                 });
-            } else if (measure % 8 === 7) {
-                console.log("measure #%d: may mute drum parts", measure);
+            } else if (measure % muteMeasures.value === muteMeasures.value - 1) {
+                console.log("measure #%d: may mute drum parts (late)", measure);
                 state.drums.mutes.forEach((m, i) => {
                     if (Math.random() < 0.5) {
                         m.value ||= drumMutes[i];
@@ -698,7 +716,23 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
             patternEnabled,
             dialsEnabled,
             mutesEnabled
-        ]
+        ],
+        randomisation: {
+            noteChangeMeasures,
+            noteChangeChance,
+            newNotesChangeMeasures,
+            newNotesChangeChance,
+            drumChangeMeasures,
+            drumChangeChance,
+            muteMeasures,
+            muteBDChance,
+            muteOHChance,
+            muteCHChance,
+            muteSDChance,
+            muteCPChance,
+            bpmJumpMeasures,
+            bpmJumpChance,
+        }
     }
 }
 

@@ -114,6 +114,22 @@ export type MidiUnit = {
 
 export type AutoPilotUnit = {
     switches: GeneralisedParameter<boolean>[]
+    randomisation: {
+        noteChangeMeasures: NumericParameter,
+        noteChangeChance: NumericParameter,
+        newNotesChangeMeasures: NumericParameter,
+        newNotesChangeChance: NumericParameter,
+        drumChangeMeasures: NumericParameter,
+        drumChangeChance: NumericParameter,
+        muteMeasures: NumericParameter,
+        muteBDChance: NumericParameter,
+        muteOHChance: NumericParameter,
+        muteCHChance: NumericParameter,
+        muteSDChance: NumericParameter,
+        muteCPChance: NumericParameter,
+        bpmJumpMeasures: NumericParameter,
+        bpmJumpChance: NumericParameter,
+    }
 }
 
 export function genericParameter<T>(name: string, value: T): GeneralisedParameter<T> {
