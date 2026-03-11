@@ -22,10 +22,9 @@ import { genericParameter, parameter, trigger } from "./interface.js";
 // Delay time in seconds = beats × (60 / bpm).
 export const DELAY_MULTIPLIERS = [
     { label: "1/16", beats: 0.25 },
-    { label: "1/8T", beats: 1 / 3 },
+    { label: "1/12", beats: 1 / 3 },
     { label: "1/8", beats: 0.5 },
     { label: "3/16", beats: 0.75 }, // dotted 8th — original default (index 3)
-    { label: "1/4", beats: 1.0 },
     { label: "3/8", beats: 1.5 }, // dotted quarter
 ];
 export const midiControlPresets = new Map([
