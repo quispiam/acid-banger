@@ -165,7 +165,7 @@ export function Audio(au = new (window.AudioContext || window.webkitAudioContext
         };
     }
     function DelayInsert(time, feedback, wet, destination = master.in) {
-        const delayNode = au.createDelay(1);
+        const delayNode = au.createDelay(6);
         delayNode.delayTime.value = time;
         const feedbackGain = au.createGain();
         feedbackGain.gain.value = feedback;

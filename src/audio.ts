@@ -181,7 +181,7 @@ export function Audio(au: AudioContext = new (window.AudioContext || window.webk
     }
 
     function DelayInsert(time: number, feedback: number, wet: number, destination: AudioNode = master.in) {
-        const delayNode = au.createDelay(1);
+        const delayNode = au.createDelay(6);
         delayNode.delayTime.value = time;
 
         const feedbackGain = au.createGain();

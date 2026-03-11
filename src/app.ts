@@ -22,6 +22,23 @@ import {
 } from "./interface.js";
 
 
+// Musical delay multipliers — stored as beat fractions (1.0 = one quarter-note beat).
+// Delay time in seconds = beats × (60 / bpm).
+// Max value is 4 beats (1 bar at any BPM); audio.ts DelayInsert is created with 6s max.
+export const DELAY_MULTIPLIERS: { label: string; beats: number }[] = [
+    { label: "1/16",  beats: 0.25  },
+    { label: "1/8T",  beats: 1/3   },
+    { label: "1/8",   beats: 0.5   },
+    { label: "1/4T",  beats: 2/3   },
+    { label: "3/16",  beats: 0.75  },   // dotted 8th — original default
+    { label: "1/4",   beats: 1.0   },
+    { label: "1/2T",  beats: 4/3   },
+    { label: "3/8",   beats: 1.5   },   // dotted quarter
+    { label: "1/2",   beats: 2.0   },
+    { label: "3/4",   beats: 3.0   },   // dotted half
+    { label: "1 bar", beats: 4.0   },
+];
+
 export const midiControlPresets = new Map([
     ["(Default)", {
         pitchOffset:   0,
@@ -495,7 +512,9 @@ async function NineOhUnit(audio: AudioT, midi: MidiT, bpm: NumericParameter): Pr
 function DelayUnit(audio: AudioT): DelayUnit  {
     const dryWet = parameter("Dry/Wet", [0,1], 0.6);
     const feedback = parameter("Feedback", [0,0.9], 0.4);
-    const delayTime = parameter("Time", [0,2], 0.3);
+    const delayTime = parameter("Time", [0,6], 0.3);
+    // Index into DELAY_MULTIPLIERS; default 4 = "3/16" (dotted 8th) = original behaviour.
+    const delayMultiplierIndex = parameter("Delay Timing", [0, DELAY_MULTIPLIERS.length - 1], 4);
     const delay = audio.DelayInsert(delayTime.value, feedback.value, dryWet.value);
     dryWet.subscribe(w => delay.wet.value = w);
     feedback.subscribe(f => delay.feedback.value = f);
@@ -507,6 +526,7 @@ function DelayUnit(audio: AudioT): DelayUnit  {
         dryWet,
         feedback,
         delayTime,
+        delayMultiplierIndex,
         inputNode: delay.in,
     }
 }
@@ -533,6 +553,8 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
     const muteCPChance             = parameter("Mute CP Chance (%)", [0, 100], 80);
     const bpmJumpMeasures          = parameter("BPM Jump Every (measures)", [1, 128], 32);
     const bpmJumpChance            = parameter("BPM Jump Chance (%)", [0, 100], 20);
+    const delayChangeMeasures      = parameter("Delay Timing Every (measures)", [1, 128], 16);
+    const delayChangeChance        = parameter("Delay Timing Chance (%)", [0, 100], 25);
 
     var lastDrumChange = 0;
     var lastNoteChange = [0,0];
@@ -575,6 +597,13 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
         if (state.clock.bpmTwiddleMode.value === 1 && measure % bpmJumpMeasures.value === 0 && Math.random() < bpmJumpChance.value / 100) {
             triggerBpmJump();
             console.log("measure #%d: auto BPM jump triggered", measure);
+        }
+
+        // Delay multiplier randomisation — gated on "Twiddle With Knobs"
+        if (dialsEnabled.value && measure % delayChangeMeasures.value === 0 && Math.random() < delayChangeChance.value / 100) {
+            const newIdx = Math.floor(Math.random() * DELAY_MULTIPLIERS.length);
+            state.delay.delayMultiplierIndex.value = newIdx;
+            console.log("measure #%d: delay multiplier -> %s", measure, DELAY_MULTIPLIERS[newIdx].label);
         }
 
         if (patternEnabled.value) {
@@ -732,6 +761,8 @@ function AutoPilot(state: ProgramState): AutoPilotUnit {
             muteCPChance,
             bpmJumpMeasures,
             bpmJumpChance,
+            delayChangeMeasures,
+            delayChangeChance,
         }
     }
 }
@@ -764,10 +795,15 @@ async function start() {
     const audio = Audio();
     const clock = ClockUnit();
     const delay = DelayUnit(audio);
-    // Only update the delay time at bar boundaries (step 0) to avoid pitch-warble
-    // artefacts caused by continuously moving the delay line length.
+    // Derive delay time from the selected multiplier and current BPM.
+    // Only apply at bar boundaries (step 0) to avoid pitch-warble artefacts.
+    function calcDelayTime(): number {
+        const beats = DELAY_MULTIPLIERS[Math.round(delay.delayMultiplierIndex.value)].beats;
+        return beats * (60 / clock.bpm.value);
+    }
     let pendingDelayTime: number | null = null;
-    clock.bpm.subscribe(b => { pendingDelayTime = (3/4) * (60/b); });
+    clock.bpm.subscribe(() => { pendingDelayTime = calcDelayTime(); });
+    delay.delayMultiplierIndex.subscribe(() => { pendingDelayTime = calcDelayTime(); });
     clock.currentStep.subscribe(step => {
         if (step === 0 && pendingDelayTime !== null) {
             delay.delayTime.value = pendingDelayTime;

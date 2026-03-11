@@ -16,7 +16,7 @@ import {
 import {textNoteToNumber} from "./audio.js";
 import {MidiT} from "./midi.js";
 import {Dial, RangeSelect} from "./dial.js";
-import {midiControlPresets, midiDrumPresets} from "./app.js";
+import {midiControlPresets, midiDrumPresets, DELAY_MULTIPLIERS} from "./app.js";
 
 const defaultColors = {
     bg: "#140c2d",
@@ -547,12 +547,41 @@ function ClockControls(clock: ClockUnit) {
 }
 
 function DelayControls(delayUnit: DelayUnit) {
-    const controls = DialSet([delayUnit.dryWet, delayUnit.feedback]);
-    controls.classList.add("horizontal");
+    const container = document.createElement("div");
+    container.classList.add("delay-controls");
+
+    const dials = DialSet([delayUnit.dryWet, delayUnit.feedback]);
+    dials.classList.add("horizontal");
+    container.append(dials);
+
+    // Timing dropdown — lists musical delay multiples
+    const timingWrapper = document.createElement("div");
+    timingWrapper.classList.add("delay-timing-wrapper");
+
+    const timingLabel = document.createElement("span");
+    timingLabel.classList.add("delay-timing-label");
+    timingLabel.innerText = "Timing";
+
+    const timingSelect = document.createElement("select");
+    timingSelect.classList.add("delay-timing-select");
+    DELAY_MULTIPLIERS.forEach((m, i) => {
+        const opt = document.createElement("option");
+        opt.text = m.label;
+        opt.value = String(i);
+        timingSelect.add(opt);
+    });
+    timingSelect.selectedIndex = Math.round(delayUnit.delayMultiplierIndex.value);
+    timingSelect.addEventListener("change", () => {
+        delayUnit.delayMultiplierIndex.value = timingSelect.selectedIndex;
+    });
+    delayUnit.delayMultiplierIndex.subscribe(v => { timingSelect.selectedIndex = Math.round(v); });
+
+    timingWrapper.append(timingLabel, timingSelect);
+    container.append(timingWrapper);
 
     return controlGroup(
         label("Delay"),
-        controls,
+        container,
     )
 }
 
@@ -644,6 +673,10 @@ function RandomisationControls(autoPilot: AutoPilotUnit) {
         rndSection("BPM",
             rndField(r.bpmJumpMeasures),
             rndField(r.bpmJumpChance),
+        ),
+        rndSection("Delay",
+            rndField(r.delayChangeMeasures),
+            rndField(r.delayChangeChance),
         ),
     );
 

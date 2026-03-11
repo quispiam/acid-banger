@@ -94,6 +94,7 @@ export type DelayUnit = {
     dryWet: NumericParameter,
     feedback: NumericParameter,
     delayTime: NumericParameter,
+    delayMultiplierIndex: NumericParameter,
     inputNode: AudioNode,
     // outputNode: AudioNode
 }
@@ -129,6 +130,8 @@ export type AutoPilotUnit = {
         muteCPChance: NumericParameter,
         bpmJumpMeasures: NumericParameter,
         bpmJumpChance: NumericParameter,
+        delayChangeMeasures: NumericParameter,
+        delayChangeChance: NumericParameter,
     }
 }
 
