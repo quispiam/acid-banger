@@ -20,19 +20,13 @@ import { UI } from "./ui.js";
 import { genericParameter, parameter, trigger } from "./interface.js";
 // Musical delay multipliers — stored as beat fractions (1.0 = one quarter-note beat).
 // Delay time in seconds = beats × (60 / bpm).
-// Max value is 4 beats (1 bar at any BPM); audio.ts DelayInsert is created with 6s max.
 export const DELAY_MULTIPLIERS = [
     { label: "1/16", beats: 0.25 },
     { label: "1/8T", beats: 1 / 3 },
     { label: "1/8", beats: 0.5 },
-    { label: "1/4T", beats: 2 / 3 },
-    { label: "3/16", beats: 0.75 }, // dotted 8th — original default
+    { label: "3/16", beats: 0.75 }, // dotted 8th — original default (index 3)
     { label: "1/4", beats: 1.0 },
-    { label: "1/2T", beats: 4 / 3 },
     { label: "3/8", beats: 1.5 }, // dotted quarter
-    { label: "1/2", beats: 2.0 },
-    { label: "3/4", beats: 3.0 }, // dotted half
-    { label: "1 bar", beats: 4.0 },
 ];
 export const midiControlPresets = new Map([
     ["(Default)", {
@@ -455,8 +449,8 @@ function DelayUnit(audio) {
     const dryWet = parameter("Dry/Wet", [0, 1], 0.6);
     const feedback = parameter("Feedback", [0, 0.9], 0.4);
     const delayTime = parameter("Time", [0, 6], 0.3);
-    // Index into DELAY_MULTIPLIERS; default 4 = "3/16" (dotted 8th) = original behaviour.
-    const delayMultiplierIndex = parameter("Delay Timing", [0, DELAY_MULTIPLIERS.length - 1], 4);
+    // Index into DELAY_MULTIPLIERS; default 3 = "3/16" (dotted 8th) = original behaviour.
+    const delayMultiplierIndex = parameter("Delay Timing", [0, DELAY_MULTIPLIERS.length - 1], 3);
     const delay = audio.DelayInsert(delayTime.value, feedback.value, dryWet.value);
     dryWet.subscribe(w => delay.wet.value = w);
     feedback.subscribe(f => delay.feedback.value = f);
